@@ -6,7 +6,13 @@
 ## ¿Por qué es útil? 
  Facilita la movilidad con tiempos mas cortos
 ## ¿Qué problemas resuelve? 
- Rutas mas comodas y rapidas 
+Ayudar a las personas a encontrar el camino más corto
+para llegar a un destino, como si fuera una app de GPS.
+Simular cómo el tráfico o el tiempo de viaje puede cambiar
+las rutas más rápidas.
+Mostrar de forma clara un mapa de calles y lugares
+comunes (como casas, parques, escuelas) para que el
+usuario elija de dónde sale y a dónde quiere llegar
 # Instalacion
 Asegurarse de tener las librerias correctas (tkinter, networX, matplotlib) crear una carpeta con los dos programas y asegurarse que el nombre del programa sea el predefinido en el codigo 
 # Uso
