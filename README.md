@@ -14,3 +14,6 @@ Al compilar el codigo se mostraran unas ventanas en donde se va a poder seleccio
 # Creditos
 Desarrollado por: Monroy Pastrana Leonardo, Rodríguez Mercado Axel David, Cayetano de la Cruz Axel Gustavo
 # Bibliografias
+https://networkx.org/documentation/stable/tutorial.html
+https://docs.python.org/3/library/tkinter.html
+https://matplotlib.org/stable/index.html
