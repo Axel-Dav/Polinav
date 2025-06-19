@@ -1,7 +1,7 @@
 #====================================================================================
 #                                   ENCABEZADO
 #====================================================================================
-# Autores: Monroy Pastrana Leonardo, Rodriguez Mercado Axel David
+# Autores: Monroy Pastrana Leonardo, Rodriguez Mercado Axel David, Axel Gustavo Cayetano de la Cruz
 # Acividad: 
 # Descripción del programa: 
 #====================================================================================
