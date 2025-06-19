@@ -13,7 +13,7 @@
 # Instalacion
 Asegurarse de tener las librerias correctas (tkinter, networX, matplotlib) crear una carpeta con los dos programas y asegurarse que el nombre del programa sea el predefinido en el codigo 
 # Uso
-Al compilar el codigo se mostraran unas ventanas en donde se va a poder seleccionar las opciones disponibles 
+Al compilar el codigo se mostraran unas ventanas en donde se va a poder seleccionar las opciones disponibles (Revisar el archivo Funcionamiento del programa.pdf)
 # Creditos
 
 # Bibliografias
