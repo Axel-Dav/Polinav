@@ -1,7 +1,7 @@
 # ==============================================================================
 #                                  GRAFOS
 # ==============================================================================
-# Desarrollado por: Monroy Pastrana Leonardo, Rodríguez Mercado Axel David
+# Desarrollado por: Monroy Pastrana Leonardo, Rodríguez Mercado Axel David,Cayetano de la Cruz Axel Gustavo
 # Proyecto: Navegación GPS
 # Descripción: 
 # ==============================================================================
