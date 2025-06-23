@@ -1,8 +1,8 @@
 
-# =================== Simulador GPS con Concurrencia ===================
-# Desarrollado por: Monroy Pastrana Leonardo
-# Descripción: Simulador de transporte con camiones concurrentes en una ciudad.
-# Incluye importación/exportación de datos y seguimiento de estado.
+# =============================== SIMULADOR GPS CON CARGA ===============================
+# Alumno: Monroy Pastrana Leonardo
+# Descripción: Sistema GPS con visualización de rutas y simulación concurrente de camiones
+# =======================================================================================
 
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
@@ -25,14 +25,14 @@ class ListaEnlazada:
         self.inicio = None
 
     def insertar(self, dato):
-        nuevo_nodo = Nodo(dato)
+        nuevo = Nodo(dato)
         if not self.inicio:
-            self.inicio = nuevo_nodo
+            self.inicio = nuevo
         else:
             actual = self.inicio
             while actual.siguiente:
                 actual = actual.siguiente
-            actual.siguiente = nuevo_nodo
+            actual.siguiente = nuevo
 
     def buscar(self, dato):
         actual = self.inicio
@@ -55,22 +55,22 @@ class GrafoFlexible:
             if posicion:
                 self.posiciones[vertice] = tuple(posicion)
 
-    def agregar_arista(self, v1, v2, peso=1, bidireccional=False):
-        self.agregar_vertice(v1)
-        self.agregar_vertice(v2)
-        if not self.adyacencia[v1].buscar(v2):
-            self.adyacencia[v1].insertar(v2)
-            self.grafo_nx.add_edge(v1, v2, weight=peso)
+    def agregar_arista(self, origen, destino, peso=1, bidireccional=False):
+        self.agregar_vertice(origen)
+        self.agregar_vertice(destino)
+        if not self.adyacencia[origen].buscar(destino):
+            self.adyacencia[origen].insertar(destino)
+            self.grafo_nx.add_edge(origen, destino, weight=peso)
         if bidireccional:
-            if not self.adyacencia[v2].buscar(v1):
-                self.adyacencia[v2].insertar(v1)
-                self.grafo_nx.add_edge(v2, v1, weight=peso)
+            if not self.adyacencia[destino].buscar(origen):
+                self.adyacencia[destino].insertar(origen)
+                self.grafo_nx.add_edge(destino, origen, weight=peso)
 
     def mostrar(self):
         pos = self.posiciones if self.posiciones else nx.spring_layout(self.grafo_nx, seed=42)
         nx.draw(self.grafo_nx, pos, with_labels=True, node_size=2000, node_color='skyblue', font_size=10, arrows=True)
-        etiquetas_aristas = nx.get_edge_attributes(self.grafo_nx, 'weight')
-        nx.draw_networkx_edge_labels(self.grafo_nx, pos, edge_labels=etiquetas_aristas)
+        etiquetas = nx.get_edge_attributes(self.grafo_nx, 'weight')
+        nx.draw_networkx_edge_labels(self.grafo_nx, pos, edge_labels=etiquetas)
         plt.title("Mapa de tráfico urbano")
         plt.show()
 
@@ -79,32 +79,95 @@ class GrafoFlexible:
             with open(archivo, "r") as f:
                 datos = json.load(f)
                 for nodo in datos["nodos"]:
-                    nombre = nodo["nombre"]
-                    posicion = nodo.get("posicion")
-                    self.agregar_vertice(nombre, posicion)
+                    self.agregar_vertice(nodo["nombre"], nodo.get("posicion"))
                 for arista in datos["calles"]:
-                    origen = arista["origen"]
-                    destino = arista["destino"]
-                    peso = arista["peso"]
-                    doble = arista["doble_sentido"]
-                    self.agregar_arista(origen, destino, peso, bidireccional=doble)
+                    self.agregar_arista(arista["origen"], arista["destino"], arista["peso"], arista["doble_sentido"])
         except Exception as e:
-            messagebox.showerror("Error al cargar mapa", str(e))
+            messagebox.showerror("Error", f"No se pudo cargar el mapa: {str(e)}")
 
 class SistemaGPS:
     def __init__(self, grafo):
-        self.calle = grafo
+        self.grafo = grafo
 
     def buscar_ruta(self, origen, destino):
         try:
-            ruta = nx.shortest_path(self.calle.grafo_nx, source=origen, target=destino, weight='weight')
-            tiempo_total = sum(self.calle.grafo_nx[ruta[i]][ruta[i+1]]['weight'] for i in range(len(ruta)-1))
+            ruta = nx.shortest_path(self.grafo.grafo_nx, source=origen, target=destino, weight='weight')
+            tiempo_total = sum(self.grafo.grafo_nx[ruta[i]][ruta[i+1]]['weight'] for i in range(len(ruta)-1))
             return ruta, tiempo_total
         except nx.NetworkXNoPath:
             return [], None
 
     def simular_trafico(self):
-        for u, v in self.calle.grafo_nx.edges:
-            self.calle.grafo_nx[u][v]['weight'] = random.randint(1, 10)
+        for u, v in self.grafo.grafo_nx.edges:
+            self.grafo.grafo_nx[u][v]['weight'] = random.randint(1, 10)
 
-# El resto del código se agregará en el siguiente paso por límite de longitud
+class InterfazGPS:
+    def __init__(self, ventana):
+        self.ventana = ventana
+        self.ventana.title("Simulador GPS Concurrente")
+        self.ventana.geometry("600x500")
+
+        self.grafo = GrafoFlexible()
+        self.sistema = SistemaGPS(self.grafo)
+        self.historial = []
+
+        self._crear_menu()
+        self._crear_interfaz()
+
+    def _crear_menu(self):
+        barra = tk.Menu(self.ventana)
+        menu_archivo = tk.Menu(barra, tearoff=0)
+        menu_archivo.add_command(label="Importar mapa", command=self.importar_mapa)
+        menu_archivo.add_command(label="Mostrar mapa", command=self.grafo.mostrar)
+        menu_archivo.add_separator()
+        menu_archivo.add_command(label="Salir", command=self.ventana.quit)
+        barra.add_cascade(label="Menú", menu=menu_archivo)
+
+        barra.add_command(label="Acerca de", command=lambda: messagebox.showinfo("Autor", "Monroy Pastrana Leonardo"))
+        self.ventana.config(menu=barra)
+
+    def _crear_interfaz(self):
+        frame = tk.Frame(self.ventana)
+        frame.pack(pady=10)
+
+        tk.Label(frame, text="Origen:").grid(row=0, column=0)
+        self.combo_origen = ttk.Combobox(frame)
+        self.combo_origen.grid(row=0, column=1)
+
+        tk.Label(frame, text="Destino:").grid(row=1, column=0)
+        self.combo_destino = ttk.Combobox(frame)
+        self.combo_destino.grid(row=1, column=1)
+
+        tk.Button(frame, text="Buscar Ruta", command=self.buscar_ruta).grid(row=2, column=0, columnspan=2, pady=10)
+        tk.Button(frame, text="Simular tráfico", command=self.simular_trafico).grid(row=3, column=0, columnspan=2)
+
+    def importar_mapa(self):
+        archivo = filedialog.askopenfilename(filetypes=[("Archivos JSON", "*.json")])
+        if archivo:
+            self.grafo.cargar_desde_json(archivo)
+            nodos = list(self.grafo.grafo_nx.nodes)
+            self.combo_origen["values"] = nodos
+            self.combo_destino["values"] = nodos
+            messagebox.showinfo("Mapa cargado", "Mapa importado exitosamente.")
+
+    def buscar_ruta(self):
+        origen = self.combo_origen.get()
+        destino = self.combo_destino.get()
+        ruta, tiempo = self.sistema.buscar_ruta(origen, destino)
+        if ruta:
+            mensaje = f"Ruta: {' ➝ '.join(ruta)}
+Tiempo estimado: {tiempo} min"
+            messagebox.showinfo("Ruta encontrada", mensaje)
+            self.grafo.mostrar()
+        else:
+            messagebox.showerror("Error", "No hay ruta entre esos puntos.")
+
+    def simular_trafico(self):
+        self.sistema.simular_trafico()
+        messagebox.showinfo("Tráfico", "Tráfico simulado.")
+        self.grafo.mostrar()
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = InterfazGPS(root)
+    root.mainloop()
