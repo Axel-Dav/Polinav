@@ -74,10 +74,9 @@ class GrafoFlexible:
         if not self.adyacencia[v1].buscar(v2):
             self.adyacencia[v1].insertar(v2)
             self.grafo_nx.add_edge(v1, v2, weight=peso)
-        if bidireccional:
-            if not self.adyacencia[v2].buscar(v1):
-                self.adyacencia[v2].insertar(v1)
-                self.grafo_nx.add_edge(v2, v1, weight=peso)
+        if bidireccional and not self.adyacencia[v2].buscar(v1):
+            self.adyacencia[v2].insertar(v1)
+            self.grafo_nx.add_edge(v2, v1, weight=peso)
 
     def mostrar(self):
         plt.clf()
@@ -121,7 +120,7 @@ class CentralAutobuses:
         self.registrar = registrar
         self.actualizar = actualizar
         self.clientes = []
-        self.datos = []
+        self.datos = {}
         self.archivo_csv = None
 
     def agregar_clientes(self, total, destinos):
@@ -135,12 +134,16 @@ class CentralAutobuses:
     def simular_camion(self, numero, destino):
         CAPACIDAD = 20
         vueltas = 0
+        total_pasajeros = 0
+        total_ida = 0
+        total_regreso = 0
+
         while destino in self.clientes:
             self.actualizar(numero, "viaje", destino)
             self.gps.simular_trafico()
             ruta, ida = self.gps.buscar_ruta("Central", destino)
             if not ruta:
-                self.registrar(f"[Camión-{numero}] Ruta no disponible.")
+                self.registrar(f"[Camión-{numero}] Ruta no disponible hacia {destino}.")
                 return
             pasajeros = min(CAPACIDAD, self.clientes.count(destino))
             for _ in range(pasajeros):
@@ -148,42 +151,58 @@ class CentralAutobuses:
             self.registrar(f"[Camión-{numero}] {pasajeros} pasajeros hacia {destino}. Tiempo: {ida}min")
             time.sleep(ida * 0.1)
             self.actualizar(numero, "regresando", destino)
-            ruta, regreso = self.gps.buscar_ruta(destino, "Central")
+            _, regreso = self.gps.buscar_ruta(destino, "Central")
             time.sleep(regreso * 0.1)
-            self.datos.append((numero, destino, pasajeros, ida, regreso, vueltas + 1))
+
+            total_pasajeros += pasajeros
+            total_ida += ida
+            total_regreso += regreso
             vueltas += 1
+
         self.actualizar(numero, "disponible", "-")
+        tiempo_total = total_ida + total_regreso
+        self.registrar(f"[Camión-{numero}] Finalizó. Total pasajeros: {total_pasajeros} | Vueltas: {vueltas}")
+        self.datos[(numero, destino)] = [numero, destino, total_pasajeros, total_ida, total_regreso, vueltas, tiempo_total]
+
         if not self.clientes:
             self.registrar("Todos los clientes han sido atendidos.")
 
     def exportar_csv(self):
         archivo = filedialog.asksaveasfilename(defaultextension=".csv")
         if archivo:
-            self.archivo_csv = archivo
-            self.escribir_csv()
+            with open(archivo, "w", newline="") as f:
+                w = csv.writer(f)
+                w.writerow(["Camión", "Destino", "Pasajeros", "Tiempo Ida", "Tiempo Regreso", "Vueltas", "Tiempo Total"])
+                for fila in self.datos.values():
+                    w.writerow(fila)
             messagebox.showinfo("Éxito", "Datos exportados correctamente.")
 
-    def escribir_csv(self):
-        if self.archivo_csv:
-            with open(self.archivo_csv, "a", newline="") as f:
-                w = csv.writer(f)
-                if f.tell() == 0:
-                    w.writerow(["Camión", "Destino", "Pasajeros", "Ida", "Regreso", "Vueltas"])
-                w.writerows(self.datos)
-            self.datos.clear()
-
-    def importar_csv(self, mostrar_funcion):
-        archivo = filedialog.askopenfilename(filetypes=[("Archivos CSV", "*.csv")])
+    def importar_csv(self):
+        archivo = filedialog.askopenfilename(filetypes=[("CSV", "*.csv")])
         if archivo:
             self.archivo_csv = archivo
             with open(archivo, "r") as f:
-                for linea in f.readlines()[1:]:
-                    mostrar_funcion(linea.strip())
+                lector = csv.reader(f)
+                next(lector)
+                for fila in lector:
+                    self.registrar(" | ".join(fila))
+            return True
+        return False
+
+    def insertar_datos_en_csv(self):
+        if not self.archivo_csv:
+            messagebox.showwarning("Sin archivo", "Primero importa un archivo CSV.")
+            return
+        with open(self.archivo_csv, "a", newline="") as f:
+            w = csv.writer(f)
+            for fila in self.datos.values():
+                w.writerow(fila)
+        messagebox.showinfo("Datos agregados", "Nuevos datos insertados correctamente.")
 
 class InterfazGPS:
     def __init__(self, root):
         self.ventana = root
-        self.ventana.title("Simulador de Camiones")
+        self.ventana.title("POLINAV - Simulador de Camiones")
         self.grafo = GrafoFlexible()
         self.sistema = SistemaGPS(self.grafo)
         self.central = CentralAutobuses(self.sistema, self.registrar, self.actualizar)
@@ -200,20 +219,20 @@ class InterfazGPS:
         barra = tk.Menu(self.ventana)
 
         menu_archivo = tk.Menu(barra, tearoff=0)
-        menu_archivo.add_command(label="Exportar datos", command=self.central.exportar_csv)
-        menu_archivo.add_command(label="Importar datos", command=lambda: self.central.importar_csv(self.registrar))
-        menu_archivo.add_command(label="Insertar datos", command=self.central.escribir_csv, state="disabled")
+        menu_archivo.add_command(label="Importar CSV", command=self.importar_csv)
+        menu_archivo.add_command(label="Exportar CSV", command=self.central.exportar_csv)
+        menu_archivo.add_command(label="Insertar datos", command=self.central.insertar_datos_en_csv, state="disabled")
         menu_archivo.add_separator()
         menu_archivo.add_command(label="Salir", command=self.ventana.quit)
-        self.boton_insertar = menu_archivo
+        barra.add_cascade(label="Menú", menu=menu_archivo)
+        self.menu_insertar = menu_archivo
 
         menu_mapa = tk.Menu(barra, tearoff=0)
-        menu_mapa.add_command(label="Cargar mapa", command=self.importar)
+        menu_mapa.add_command(label="Cargar mapa", command=self.importar_mapa)
         menu_mapa.add_command(label="Ver mapa", command=self.grafo.mostrar)
         menu_mapa.add_command(label="Simular tráfico", command=self.sistema.simular_trafico)
-
-        barra.add_cascade(label="Menú", menu=menu_archivo)
         barra.add_cascade(label="Mapa", menu=menu_mapa)
+
         barra.add_command(label="Acerca de", command=lambda: messagebox.showinfo("Autor", "Monroy Pastrana Leonardo"))
         self.ventana.config(menu=barra)
 
@@ -236,12 +255,7 @@ class InterfazGPS:
             widget.destroy()
         self.opciones_destinos.clear()
 
-        try:
-            num = int(self.combo_camiones.get())
-        except:
-            messagebox.showerror("Error", "Selecciona número de camiones.")
-            return
-
+        num = int(self.combo_camiones.get())
         nodos = [n for n in self.grafo.grafo_nx.nodes if n != "Central"]
         self.camion_destinos = []
 
@@ -277,18 +291,18 @@ class InterfazGPS:
         texto = {"viaje":"En viaje", "regresando":"Regresando", "disponible":"Disponible"}
         self.labels_estado[num].config(text=f"Camión {num}: {texto[estado]} - Nodo: {nodo}", bg=colores[estado])
 
-    def importar(self):
+    def importar_mapa(self):
         archivo = filedialog.askopenfilename(filetypes=[("JSON", "*.json")])
         if archivo:
             self.grafo.cargar_json(archivo)
             messagebox.showinfo("Importado", "Mapa cargado exitosamente.")
 
+    def importar_csv(self):
+        if self.central.importar_csv():
+            self.menu_insertar.entryconfig("Insertar datos", state="normal")
+
     def iniciar(self):
-        try:
-            total = int(self.entrada_clientes.get())
-        except:
-            messagebox.showerror("Error", "Número de clientes inválido.")
-            return
+        total = int(self.entrada_clientes.get())
         destinos = [v.get() for v in self.camion_destinos]
         if len(set(destinos)) != len(destinos):
             messagebox.showerror("Error", "Destinos deben ser únicos.")
@@ -296,7 +310,6 @@ class InterfazGPS:
         self.central.clientes.clear()
         self.central.agregar_clientes(total, destinos)
         self.central.lanzar_camiones(destinos)
-        self.boton_insertar.entryconfig("Insertar datos", state="normal")
 
 # ==============================================================================
 #                              BLOQUE PRINCIPAL
