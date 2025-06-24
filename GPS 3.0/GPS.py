@@ -233,7 +233,7 @@ class InterfazGPS:
         menu_mapa.add_command(label="Simular tráfico", command=self.sistema.simular_trafico)
         barra.add_cascade(label="Mapa", menu=menu_mapa)
 
-        barra.add_command(label="Acerca de", command=lambda: messagebox.showinfo("Autor", "Monroy Pastrana Leonardo"))
+        barra.add_command(label="Acerca de", command=lambda: messagebox.showinfo("Autores", "Monroy Pastrana Leonardo" "\nRodríguez Mercado Axel David" "\n Cayetano de la Cruz Axel Gustavo"))
         self.ventana.config(menu=barra)
 
     def crear_controles(self):
